@@ -4,6 +4,6 @@
 
 - Written with ffmpeg-go
 
-![gobra logo](https://github.com/thedekerone/gobra/assets/gobra-logo.png)
+![gobra logo](https://github.com/thedekerone/gobra/blob/main/assets/gobra-mascot.png)
 
 
