@@ -19,9 +19,10 @@ func main() {
 	videos := []*video.Video{&video1, &video2, &video3, &video4}
 
 	for i, _ := range videos {
-		videos[i] = videos[i].Crop(900, 900)
+		videos[i] = videos[i].Crop(900, 1400)
 		videos[i] = videos[i].AddFadeIn(1)
 		videos[i] = videos[i].AddFadeOut(1)
+		videos[i] = videos[i].AddZoomIn(1.10)
 	}
 
 	custom := video.MergeVideos(&video1, &video2, &video3, &video4)

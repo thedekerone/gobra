@@ -116,12 +116,12 @@ func (s *Video) AddFadeOut(duration int) *Video {
 	return s
 }
 
-func (s *Video) AddZoomIn(start int, duration int) *Video {
-	if duration < 0 {
-		panic("duration can't be less than 0")
+func (s *Video) AddZoomIn(zoom float64) *Video {
+	if zoom < 1 {
+		panic("duration can't be less than 1")
 	}
 	s.stream = s.stream.
-		Filter("zoompan", ffmpeg.Args{"z=min(max(zoom,pzoom)+0.001,1.25)", "d=1", "fps=60", "s=1800x1800"})
+		Filter("zoompan", ffmpeg.Args{fmt.Sprintf("z=min(max(zoom,pzoom)+0.001,%f)", zoom), "d=1", "fps=60", "s=900x1400"})
 
 	return s
 }
