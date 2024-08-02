@@ -47,7 +47,7 @@ func MergeVideos(streams ...*Video) Video {
 	videos := []*ffmpeg.Stream{}
 
 	for _, v := range streams {
-		videos = append(videos, v.Crop(900, 1600).stream)
+		videos = append(videos, v.stream)
 	}
 	merged.stream = ffmpeg.Concat(videos)
 
@@ -59,13 +59,33 @@ func (s *Video) VFlip() {
 }
 
 func (s *Video) Crop(width int, height int) *Video {
+	ratio := float64(width) / float64(height)
 	w := fmt.Sprintf("%d", width)
 	h := fmt.Sprintf("%d", height)
-	ratio := float64(width) / float64(height)
+
+	fortmattedWidth := fmt.Sprintf("if(gt(iw,ih), min(iw*%f, iw), iw)", ratio)
+	fortmattedHeight := fmt.Sprintf("if(gt(ih,iw), min(ih*%f, ih), ih)", ratio)
 
 	s.stream = s.stream.
-		Filter("crop", ffmpeg.Args{fmt.Sprintf("min(iw*%f,%s)", ratio, w), fmt.Sprintf("min(ih*%f,%s)", ratio, h)}).
+		Filter("crop", ffmpeg.Args{fortmattedWidth, fortmattedHeight}).
 		Filter("scale", ffmpeg.Args{w, h}).
-		Filter("setsar", ffmpeg.Args{fmt.Sprintf("%d", width/height)})
+		Filter("setsar", ffmpeg.Args{fmt.Sprintf("%f", ratio)})
+	return s
+}
+
+// if more custom filters are needed
+func (s *Video) Filter(name string, args ffmpeg.Args) *Video {
+	s.stream = s.stream.Filter(name, args)
+	return s
+}
+
+// if custom input is needed
+func (s *Video) Input(path string, kwargs ffmpeg.KwArgs) *Video {
+	s.stream = ffmpeg.Input(path, kwargs)
+	return s
+}
+
+func (s *Video) Output(name string, kwargs ffmpeg.KwArgs) *Video {
+	s.stream = s.stream.Output(name, kwargs)
 	return s
 }

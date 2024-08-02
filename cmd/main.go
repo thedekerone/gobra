@@ -17,6 +17,12 @@ func main() {
 
 	video4 := video.ImageToVideo("assets/story4.jpg", 4)
 
+	videos := []*video.Video{&video1, &video2, &video3, &video4}
+
+	for i, _ := range videos {
+		videos[i] = videos[i].Crop(900, 900)
+	}
+
 	custom := video.MergeVideos(&video1, &video2, &video3, &video4)
 
 	custom.SaveVideo(fmt.Sprintf("test%d.mp4", rand.Intn(100)))
