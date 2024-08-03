@@ -35,6 +35,8 @@ func testVid() {
 
 	custom := video.MergeVideos(&video1, &video2, &video3, &video4)
 
+	custom.AddSubtitles("assets/test_sub.srt")
+
 	custom.SaveVideo(fmt.Sprintf("test.mp4"))
 
 }

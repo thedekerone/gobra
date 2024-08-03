@@ -165,3 +165,10 @@ func CreateZoomPanVideoFromImage(path string, duration int, zoom float32, config
 
 	return v
 }
+
+func (s *Video) AddSubtitles(path string) *Video {
+	s.stream = s.stream.
+		Filter("subtitles", ffmpeg.Args{path})
+
+	return s
+}
