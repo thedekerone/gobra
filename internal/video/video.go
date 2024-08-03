@@ -10,8 +10,15 @@ import (
 
 type Video struct {
 	stream   *ffmpeg.Stream
-	fps      int
 	duration int
+	config   Config
+}
+
+type Config struct {
+	Width       int
+	Height      int
+	fps         int
+	aspectRatio float64
 }
 
 func ReadVideo(path string) *ffmpeg.Stream {
@@ -25,7 +32,7 @@ func ImageToVideo(path string, duration int, fps int) Video {
 	}
 
 	c.duration = duration
-	c.fps = fps
+	c.config.fps = fps
 	c.stream = ffmpeg.Input(path, ffmpeg.KwArgs{"loop": 1, "t": duration, "framerate": 30})
 
 	return c
@@ -33,7 +40,7 @@ func ImageToVideo(path string, duration int, fps int) Video {
 }
 
 func (s *Video) GetVideoOutput(name string) *Video {
-	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:v": "libx264", "r": s.fps, "framerate": 1})
+	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:v": "libx264", "r": s.config.fps, "framerate": 1})
 
 	return s
 }
@@ -55,7 +62,7 @@ func MergeVideos(streams ...*Video) Video {
 		newDuration += v.duration
 	}
 	merged.stream = ffmpeg.Concat(videos)
-	merged.fps = streams[0].fps
+	merged.config.fps = streams[0].config.fps
 	merged.duration = newDuration
 	return merged
 }
@@ -76,6 +83,10 @@ func (s *Video) Crop(width int, height int) *Video {
 		Filter("crop", ffmpeg.Args{fortmattedWidth, fortmattedHeight}).
 		Filter("scale", ffmpeg.Args{w, h}).
 		Filter("setsar", ffmpeg.Args{fmt.Sprintf("%f", ratio)})
+
+	s.config.Width = width
+	s.config.Height = height
+	s.config.aspectRatio = ratio
 	return s
 }
 
@@ -121,7 +132,34 @@ func (s *Video) AddZoomIn(zoom float64) *Video {
 		panic("duration can't be less than 1")
 	}
 	s.stream = s.stream.
-		Filter("zoompan", ffmpeg.Args{fmt.Sprintf("z=min(max(zoom,pzoom)+0.001,%f)", zoom), "d=1", "fps=60", "s=900x1400"})
+		Filter("scale", ffmpeg.Args{"iw*10", "ih*10"}).
+		Filter("zoompan",
+			ffmpeg.Args{
+				"z=pzoom+0.001",
+				"d=1", fmt.Sprintf("fps=%d", s.config.fps),
+				"x=max(x,iw/2) - max(x,iw/2)/zoom",
+				fmt.Sprintf("s=%dx%d", s.config.Width, s.config.Height),
+			})
 
 	return s
+}
+
+func CreateZoomPanVideoFromImage(path string, duration int, zoom float32) Video {
+	v := Video{}
+	i := ffmpeg.Input(path).Filter("scale", ffmpeg.Args{"6400", "3600"}).
+		Filter("zoompan",
+			ffmpeg.Args{
+				fmt.Sprintf("z=min(zoom+0.0015,%f)", zoom),
+				fmt.Sprintf("d=%d", duration),
+				"x=iw/2-(iw/zoom/2)",
+				"y=ih/2-(ih/zoom/2)",
+			})
+	v.stream = i
+
+	v.config.Width = 640
+	v.config.Height = 360
+	v.config.aspectRatio = 640 / 360
+	v.config.fps = 60
+
+	return v
 }
