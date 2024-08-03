@@ -11,21 +11,26 @@ func main() {
 }
 
 func testVid() {
-	video2 := video.ImageToVideo("assets/story1.jpg", 7, 60)
+	config := video.Config{
+		Width:       900,
+		Height:      1400,
+		Fps:         60,
+		AspectRatio: 1.25,
+	}
+	video2 := video.CreateZoomPanVideoFromImage("assets/story1.jpg", 4, 1.25, config)
 
-	video1 := video.ImageToVideo("assets/story2.jpg", 7, 60)
+	video1 := video.CreateZoomPanVideoFromImage("assets/story2.jpg", 4, 1.25, config)
 
-	video3 := video.ImageToVideo("assets/story3.jpg", 7, 60)
+	video3 := video.CreateZoomPanVideoFromImage("assets/story3.jpg", 4, 1.25, config)
 
-	video4 := video.ImageToVideo("assets/story4.jpg", 7, 60)
+	video4 := video.CreateZoomPanVideoFromImage("assets/story4.jpg", 4, 1.25, config)
 
 	videos := []*video.Video{&video1, &video2, &video3, &video4}
 
 	for i, _ := range videos {
 		videos[i] = videos[i].Crop(900, 1400)
-		videos[i] = videos[i].AddFadeIn(1)
-		videos[i] = videos[i].AddFadeOut(1)
-		videos[i] = videos[i].AddZoomIn(1.12)
+		videos[i] = videos[i].AddFadeIn(0.5)
+		videos[i] = videos[i].AddFadeOut(0.5)
 	}
 
 	custom := video.MergeVideos(&video1, &video2, &video3, &video4)

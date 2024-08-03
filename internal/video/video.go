@@ -17,8 +17,8 @@ type Video struct {
 type Config struct {
 	Width       int
 	Height      int
-	fps         int
-	aspectRatio float64
+	Fps         int
+	AspectRatio float64
 }
 
 func ReadVideo(path string) *ffmpeg.Stream {
@@ -32,7 +32,7 @@ func ImageToVideo(path string, duration int, fps int) Video {
 	}
 
 	c.duration = duration
-	c.config.fps = fps
+	c.config.Fps = fps
 	c.stream = ffmpeg.Input(path, ffmpeg.KwArgs{"loop": 1, "t": duration, "framerate": 30})
 
 	return c
@@ -40,7 +40,7 @@ func ImageToVideo(path string, duration int, fps int) Video {
 }
 
 func (s *Video) GetVideoOutput(name string) *Video {
-	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:v": "libx264", "r": s.config.fps, "framerate": 1})
+	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:v": "libx264", "r": s.config.Fps, "framerate": 1})
 
 	return s
 }
@@ -62,7 +62,7 @@ func MergeVideos(streams ...*Video) Video {
 		newDuration += v.duration
 	}
 	merged.stream = ffmpeg.Concat(videos)
-	merged.config.fps = streams[0].config.fps
+	merged.config.Fps = streams[0].config.Fps
 	merged.duration = newDuration
 	return merged
 }
@@ -86,7 +86,7 @@ func (s *Video) Crop(width int, height int) *Video {
 
 	s.config.Width = width
 	s.config.Height = height
-	s.config.aspectRatio = ratio
+	s.config.AspectRatio = ratio
 	return s
 }
 
@@ -107,22 +107,22 @@ func (s *Video) Output(name string, kwargs ffmpeg.KwArgs) *Video {
 	return s
 }
 
-func (s *Video) AddFadeIn(duration int) *Video {
+func (s *Video) AddFadeIn(duration float32) *Video {
 	if duration < 0 {
 		panic("duration can't be less than 0")
 	}
 	s.stream = s.stream.
-		Filter("fade", ffmpeg.Args{"t=in", fmt.Sprintf("d=%d", duration)})
+		Filter("fade", ffmpeg.Args{"t=in", fmt.Sprintf("d=%f", duration)})
 
 	return s
 }
 
-func (s *Video) AddFadeOut(duration int) *Video {
+func (s *Video) AddFadeOut(duration float32) *Video {
 	if duration < 0 {
 		panic("duration can't be less than 0")
 	}
 	s.stream = s.stream.
-		Filter("fade", ffmpeg.Args{"t=out", fmt.Sprintf("d=%d", duration), fmt.Sprintf("st=%d", s.duration-duration)})
+		Filter("fade", ffmpeg.Args{"t=out", fmt.Sprintf("d=%f", duration), fmt.Sprintf("st=%f", float32(s.duration)-duration)})
 
 	return s
 }
@@ -135,8 +135,8 @@ func (s *Video) AddZoomIn(zoom float64) *Video {
 		Filter("scale", ffmpeg.Args{"iw*10", "ih*10"}).
 		Filter("zoompan",
 			ffmpeg.Args{
-				"z=pzoom+0.001",
-				"d=1", fmt.Sprintf("fps=%d", s.config.fps),
+				fmt.Sprintf("z=min(pzoom+0.001,%f)", zoom),
+				"d=1", fmt.Sprintf("fps=%d", s.config.Fps),
 				"x=max(x,iw/2) - max(x,iw/2)/zoom",
 				fmt.Sprintf("s=%dx%d", s.config.Width, s.config.Height),
 			})
@@ -144,22 +144,24 @@ func (s *Video) AddZoomIn(zoom float64) *Video {
 	return s
 }
 
-func CreateZoomPanVideoFromImage(path string, duration int, zoom float32) Video {
+func CreateZoomPanVideoFromImage(path string, duration int, zoom float32, config Config) Video {
+	if zoom < 1 || duration < 0 {
+		panic("duration can't be less than 0 and zoom can't be less than 1")
+	}
+
 	v := Video{}
-	i := ffmpeg.Input(path).Filter("scale", ffmpeg.Args{"6400", "3600"}).
+	v.config = config
+	i := ffmpeg.Input(path).
+		Filter("scale", ffmpeg.Args{fmt.Sprintf("%d", v.config.Width*4), fmt.Sprintf("%d", v.config.Height*4)}).
 		Filter("zoompan",
 			ffmpeg.Args{
-				fmt.Sprintf("z=min(zoom+0.0015,%f)", zoom),
-				fmt.Sprintf("d=%d", duration),
+				fmt.Sprintf("z=min(max(pzoom,zoom) + 0.001,%f)", zoom),
+				fmt.Sprintf("fps=%d", v.config.Fps),
+				fmt.Sprintf("d=%d*%d", duration, v.config.Fps),
 				"x=iw/2-(iw/zoom/2)",
-				"y=ih/2-(ih/zoom/2)",
 			})
 	v.stream = i
-
-	v.config.Width = 640
-	v.config.Height = 360
-	v.config.aspectRatio = 640 / 360
-	v.config.fps = 60
+	v.duration = duration
 
 	return v
 }
