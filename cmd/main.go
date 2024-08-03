@@ -12,8 +12,8 @@ func main() {
 
 func testVid() {
 	config := video.Config{
-		Width:       900,
-		Height:      1400,
+		Width:       1080,
+		Height:      1920,
 		Fps:         60,
 		AspectRatio: 1.25,
 	}
@@ -28,7 +28,7 @@ func testVid() {
 	videos := []*video.Video{&video1, &video2, &video3, &video4}
 
 	for i, _ := range videos {
-		videos[i] = videos[i].Crop(900, 1400)
+		videos[i] = videos[i].Crop(900, 1200)
 		videos[i] = videos[i].AddFadeIn(0.5)
 		videos[i] = videos[i].AddFadeOut(0.5)
 	}
