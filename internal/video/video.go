@@ -132,13 +132,13 @@ func (s *Video) AddZoomIn(zoom float64) *Video {
 		panic("duration can't be less than 1")
 	}
 	s.stream = s.stream.
-		Filter("scale", ffmpeg.Args{"iw*10", "ih*10"}).
+		Filter("scale", ffmpeg.Args{fmt.Sprintf("w=iw*%d:h=ih*%d", 4, 4)}).
 		Filter("zoompan",
 			ffmpeg.Args{
-				fmt.Sprintf("z=min(pzoom+0.001,%f)", zoom),
-				"d=1", fmt.Sprintf("fps=%d", s.config.Fps),
-				"x=max(x,iw/2) - max(x,iw/2)/zoom",
-				fmt.Sprintf("s=%dx%d", s.config.Width, s.config.Height),
+				fmt.Sprintf("z=min(max(pzoom,zoom) + 0.001,%f)", zoom),
+				fmt.Sprintf("fps=%d", s.config.Fps),
+				fmt.Sprintf("d=%d*%d", s.duration, s.config.Fps),
+				"x=iw/2-(iw/zoom/2)",
 			})
 
 	return s
