@@ -21,8 +21,32 @@ type Config struct {
 	AspectRatio float64
 }
 
-func ReadVideo(path string) *ffmpeg.Stream {
-	return ffmpeg.Input(path)
+func ReadVideo(path string, config Config) Video {
+	c := Video{}
+	c.stream = ffmpeg.Input(path)
+
+	c.config = config
+
+	return c
+}
+
+func (s *Video) TrimVideo(start float32, end float32) *Video {
+	if start < 0 || end < 0 {
+		panic("start and end can't be less than 0")
+	}
+	s.stream = s.stream.Trim(ffmpeg.KwArgs{"start": start, "end": end})
+	s.duration = int(end - start)
+	return s
+}
+
+func (s *Video) ScaleVideo(width int, height int) *Video {
+	if width < 0 || height < 0 {
+		panic("width and height can't be less than 0")
+	}
+	s.stream = s.stream.Filter("scale", ffmpeg.Args{fmt.Sprintf("%d", width), fmt.Sprintf("%d", height)})
+	s.config.Width = width
+	s.config.Height = height
+	return s
 }
 
 func ImageToVideo(path string, duration int, fps int) Video {
@@ -40,7 +64,7 @@ func ImageToVideo(path string, duration int, fps int) Video {
 }
 
 func (s *Video) GetVideoOutput(name string) *Video {
-	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:v": "libx264", "r": s.config.Fps, "framerate": 1})
+	s.stream = s.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"c:a": "copy", "r": s.config.Fps, "framerate": 1})
 
 	return s
 }
@@ -72,7 +96,7 @@ func (s *Video) VFlip() {
 }
 
 func (s *Video) Crop(width int, height int) *Video {
-	ratio := float64(width) / float64(height)
+	ratio := 1.0
 	w := fmt.Sprintf("%d", width)
 	h := fmt.Sprintf("%d", height)
 
@@ -161,6 +185,7 @@ func CreateZoomPanVideoFromImage(path string, duration int, zoom float32, config
 				"x=iw/2-(iw/zoom/2)",
 			})
 	v.stream = i
+	v.Crop(v.config.Width, v.config.Height)
 	v.duration = duration
 
 	return v
@@ -171,4 +196,38 @@ func (s *Video) AddSubtitles(path string) *Video {
 		Filter("subtitles", ffmpeg.Args{path})
 
 	return s
+}
+
+func (s *Video) AddOverlayVideo(v *Video, x string, y string) *Video {
+	s.stream = s.stream.
+		Overlay(v.stream,
+			"pass",
+			ffmpeg.KwArgs{
+				"x": x,
+				"y": y,
+			})
+
+	return s
+}
+
+func MergeVideoWithAudio(a *Audio, v *Video) {
+	buf := bytes.NewBuffer(nil)
+
+	ffmpeg.Input("test.mp4", ffmpeg.KwArgs{"i": "assets/subway.mp3"}).
+		Output("test222.mov", ffmpeg.KwArgs{"shortest": "", "c:v": "libx264", "c:a": "aac"}).
+		WithOutput(buf, os.Stdout).
+		OverWriteOutput().
+		Run()
+
+}
+
+type Audio struct {
+	stream *ffmpeg.Stream
+}
+
+func ReadAudio(path string) Audio {
+	c := Audio{}
+	c.stream = ffmpeg.Input(path)
+
+	return c
 }
