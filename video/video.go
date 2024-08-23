@@ -229,7 +229,7 @@ func MergeAudios(path string, audios ...*Audio) error {
 		audioStreams = append(audioStreams, a.stream)
 	}
 
-	err := ffmpeg.Concat(audioStreams).Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
+	err := ffmpeg.Concat(audioStreams, ffmpeg.KwArgs{"v": 0, "a": 1}).Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
 
 	if err != nil {
 		return err
