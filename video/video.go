@@ -214,10 +214,13 @@ func (v *Video) AddOverlay(overlay *Video, x, y string) *Video {
 	return v
 }
 
-func MergeAudios(path string, audios ...*Audio) {
+func MergeAudios(path string, audios ...*Audio) error {
 	if len(audios) == 1 {
-		audios[0].stream.Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
-		return
+		err := audios[0].stream.Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	audioStreams := []*ffmpeg.Stream{}
@@ -226,7 +229,13 @@ func MergeAudios(path string, audios ...*Audio) {
 		audioStreams = append(audioStreams, a.stream)
 	}
 
-	ffmpeg.Concat(audioStreams).Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
+	err := ffmpeg.Concat(audioStreams).Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Audio struct {
