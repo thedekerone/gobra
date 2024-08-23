@@ -224,6 +224,8 @@ func MergeAudios(path string, audios ...*Audio) *Audio {
 	merged.stream = ffmpeg.Concat(audioStreams)
 
 	merged.stream = merged.stream.Output(fmt.Sprintf("%s", path))
+
+	merged.stream.WithOutput(os.Stdout).OverWriteOutput().Run()
 	return merged
 }
 
