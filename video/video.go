@@ -214,19 +214,19 @@ func (v *Video) AddOverlay(overlay *Video, x, y string) *Video {
 	return v
 }
 
-func MergeAudios(path string, audios ...*Audio) *Audio {
-	merged := &Audio{}
+func MergeAudios(path string, audios ...*Audio) {
+	if len(audios) == 1 {
+		audios[0].stream.Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
+		return
+	}
+
 	audioStreams := []*ffmpeg.Stream{}
 
 	for _, a := range audios {
 		audioStreams = append(audioStreams, a.stream)
 	}
-	merged.stream = ffmpeg.Concat(audioStreams)
 
-	merged.stream = merged.stream.Output(fmt.Sprintf("%s", path))
-
-	merged.stream.WithOutput(os.Stdout).OverWriteOutput().Run()
-	return merged
+	ffmpeg.Concat(audioStreams).Output(fmt.Sprintf("%s", path)).WithOutput(os.Stdout).OverWriteOutput().Run()
 }
 
 type Audio struct {
