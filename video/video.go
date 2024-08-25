@@ -74,7 +74,9 @@ func (v *Video) Output(name string) *Video {
 }
 
 func (v *Video) OutputWithSubtitles(name, subtitlesPath string) *Video {
-	v.stream = v.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"vf": fmt.Sprintf("subtitles=%s:force_style='Alignment=10'", subtitlesPath)})
+	v.stream = v.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"vf": fmt.Sprintf("subtitles=%s:force_style='Alignment=10'",
+		subtitlesPath),
+		"c:a": "aac", "c:v": "libx264", "map": "0:a -map 1:v"})
 	return v
 }
 
