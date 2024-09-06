@@ -3,6 +3,7 @@ package gobra
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 
 	ffmpeg "github.com/u2takey/ffmpeg-go"
@@ -10,7 +11,7 @@ import (
 
 type Video struct {
 	stream   *ffmpeg.Stream
-	duration int
+	duration float32
 	config   Config
 }
 
@@ -40,7 +41,7 @@ func (v *Video) Trim(start, end float32) *Video {
 		panic("start and end can't be less than 0")
 	}
 	v.stream = v.stream.Trim(ffmpeg.KwArgs{"start": start, "end": end})
-	v.duration = int(end - start)
+	v.duration = end - start
 	return v
 }
 
@@ -54,7 +55,7 @@ func (v *Video) Scale(width, height int) *Video {
 	return v
 }
 
-func NewImageVideo(path string, duration, fps int) *Video {
+func NewImageVideo(path string, duration float32, fps int) *Video {
 	if duration < 0 {
 		panic("duration can't be less than 0")
 	}
@@ -76,7 +77,7 @@ func (v *Video) Output(name string) *Video {
 func (v *Video) OutputWithSubtitles(name, subtitlesPath string) *Video {
 	v.stream = v.stream.Output(fmt.Sprintf("%s", name), ffmpeg.KwArgs{"vf": fmt.Sprintf("subtitles=%s:force_style='Alignment=10'",
 		subtitlesPath),
-		"c:a": "aac", "c:v": "libx264", "map": "0:a -map 1:v"})
+		"c:a": "aac", "c:v": "libx264"})
 	return v
 }
 
@@ -93,7 +94,7 @@ func (v *Video) SaveWithSubtitles(name, subtitlesPath string) {
 func MergeVideos(videos ...*Video) *Video {
 	merged := &Video{}
 	videoStreams := []*ffmpeg.Stream{}
-	newDuration := 0
+	newDuration := float32(0)
 
 	for _, v := range videos {
 		videoStreams = append(videoStreams, v.stream)
@@ -176,7 +177,7 @@ func (v *Video) AddZoomIn(zoom float64) *Video {
 	return v
 }
 
-func NewZoomPanVideoFromImage(path string, duration int, zoom float32, config Config) *Video {
+func NewZoomPanVideoFromImage(path string, duration float32, zoom float32, config Config) *Video {
 	if zoom < 1 || duration < 0 {
 		panic("duration can't be less than 0 and zoom can't be less than 1")
 	}
@@ -190,7 +191,7 @@ func NewZoomPanVideoFromImage(path string, duration int, zoom float32, config Co
 			ffmpeg.Args{
 				fmt.Sprintf("z=min(max(pzoom,zoom) + 0.001,%f)", zoom),
 				fmt.Sprintf("fps=%d", v.config.Fps),
-				fmt.Sprintf("d=%d*%d", duration, v.config.Fps),
+				fmt.Sprintf("d=%.2f*%d", math.Ceil(float64(duration)*100)/100, v.config.Fps),
 				"x=iw/2-(iw/zoom/2)",
 			})
 	v.Crop(v.config.Width, v.config.Height)
