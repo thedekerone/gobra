@@ -81,14 +81,25 @@ func (v *Video) OutputWithSubtitles(name, subtitlesPath string) *Video {
 	return v
 }
 
-func (v *Video) Save(name string) {
+func (v *Video) Save(name string) error {
 	buf := bytes.NewBuffer(nil)
-	v.Output(name).stream.WithOutput(buf, os.Stdout).OverWriteOutput().Run()
+	err := v.Output(name).stream.WithOutput(buf, os.Stdout).OverWriteOutput().Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (v *Video) SaveWithSubtitles(name, subtitlesPath string) {
+func (v *Video) SaveWithSubtitles(name, subtitlesPath string) error {
 	buf := bytes.NewBuffer(nil)
-	v.OutputWithSubtitles(name, subtitlesPath).stream.WithOutput(buf, os.Stdout).OverWriteOutput().Run()
+	err := v.OutputWithSubtitles(name, subtitlesPath).stream.WithOutput(buf, os.Stdout).OverWriteOutput().Run()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func MergeVideos(videos ...*Video) *Video {
